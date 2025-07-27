@@ -1,0 +1,1036 @@
+<html lang="en"><head><script>(function(firebaseConfig, initialAuthToken, appId) {
+        window.__firebase_config = firebaseConfig;
+        window.__initial_auth_token = initialAuthToken;
+        window.__app_id = appId;
+            })("\n{\n  \"apiKey\": \"AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY\",\n  \"authDomain\": \"bard-frontend.firebaseapp.com\",\n  \"projectId\": \"bard-frontend\",\n  \"storageBucket\": \"bard-frontend.firebasestorage.app\",\n  \"messagingSenderId\": \"175205271074\",\n  \"appId\": \"1:175205271074:web:2b7bd4d34d33bf38e6ec7b\"\n}\n","eyJhbGciOiJSUzI1NiIsImtpZCI6IjliNTYzZWFkZTM5OGI3ZWRjOTg2YThhYjM3YzNlMTY3ZjgyOGRhZGUiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BiYXJkLWZyb250ZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6XC9cL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbVwvZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJ1aWQiOiIxNjg2OTM3OTY0MDgyMjUzNjkxMSIsImlzcyI6ImZpcmViYXNlLWFkbWluc2RrLWZic3ZjQGJhcmQtZnJvbnRlbmQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJjbGFpbXMiOnsiYXBwSWQiOiJjXzBiMGQwZmEwNWM4MzMyYjZfa2luZGxlLWdhbWUtdjEtMzE0In0sImV4cCI6MTc1MzY0MjE5NiwiaWF0IjoxNzUzNjM4NTk2LCJhbGciOiJSUzI1NiJ9.Flst3-8r-VkmDwEsfICc6WNRy1D0Le0DP5wTIZXPtnuuvsCOh2jdYpYNVMW6cBf152N_nPbfqhrOtJmT0Oym7PBoVPA3_lWYHFyE6-9GV0DZC4emhHdtfUhkZblSARv4yq3MmbCm8ARL4nEiMZSpCJe9UjIl6lZ4gCfvgvsrG-4kByNyKvdor6kWqqxQOxHuZCCpfvaSIvq_gA0rJ3VADn0GIiXdIAt6rLZUUa0G-uFnjV--iUSEHC99ReKaRAObpbJKqkAIJkH0oCleUc8lbli5LKXwzJSQWisyoaivQzQ8_PGmSNVJ4nfNH-Z3tH8SKvufuQtAY6IgsIt8KcnTBA","c_0b0d0fa05c8332b6_kindle-game-v1-314")</script><script>(function() {
+  // Ensure this script is executed only once
+  if (window.firebaseAuthBridgeScriptLoaded) {
+    return;
+  }
+  window.firebaseAuthBridgeScriptLoaded = true;
+
+  let nextTokenPromiseId = 0;
+
+  // Stores { resolve, reject } for ongoing token requests
+  const pendingTokenPromises = {};
+
+  // Listen for messages from the Host Application
+  window.addEventListener('message', function(event) {
+
+    const messageData = event.data;
+
+  if (messageData && messageData.type === 'RESOLVE_NEW_FIREBASE_TOKEN') {
+      const { success, token, error, promiseId } = messageData ?? {};
+      if (pendingTokenPromises[promiseId]) {
+        if (success) {
+          pendingTokenPromises[promiseId].resolve(token);
+        } else {
+          pendingTokenPromises[promiseId].reject(new Error(error || 'Token refresh failed from host.'));
+        }
+        delete pendingTokenPromises[promiseId];
+      }
+    }
+  });
+
+  // Expose a function for the Generated App to request a new Firebase token
+  window.requestNewFirebaseToken = function() {
+    const currentPromiseId = nextTokenPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingTokenPromises[currentPromiseId] = { resolve, reject };
+    });
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'REQUEST_NEW_FIREBASE_TOKEN',
+        promiseId: currentPromiseId
+      }, '*');
+    } else {
+      pendingTokenPromises[currentPromiseId].reject(new Error('No parent window to request token from.'));
+      delete pendingTokenPromises[currentPromiseId];
+    }
+    return promise;
+  };
+})();</script><script>
+let realOriginalGetUserMedia = null;
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  realOriginalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+}
+
+(function() {
+  if (navigator.mediaDevices && navigator.mediaDevices.__proto__) {
+    try {
+      Object.defineProperty(navigator.mediaDevices.__proto__, 'getUserMedia', {
+        get: function() {
+          return undefined; // Or throw an error
+        },
+        configurable: false
+      });
+    } catch (error) {
+      console.error("Error defining prototype getter:", error);
+    }
+  }
+})();
+
+(function() {
+  const pendingMediaResolvers = {};
+  let nextMediaPromiseId = 0;
+
+  function requestMediaPermissions(constraints) {
+    const mediaPromiseId = nextMediaPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingMediaResolvers[mediaPromiseId] = (granted) => {
+        delete pendingMediaResolvers[mediaPromiseId];
+        resolve(granted);
+      };
+    });
+
+    window.parent.postMessage({
+      type: 'requestMediaPermission',
+      constraints: constraints,
+      promiseId: mediaPromiseId,
+    }, '*');
+
+    return promise;
+  }
+
+  let originalGetUserMedia = realOriginalGetUserMedia;
+
+  function interceptGetUserMedia() {
+    if (navigator.mediaDevices) {
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+        value: function(constraints) {
+          return requestMediaPermissions(constraints).then((granted) => {
+            if (granted) {
+              if (originalGetUserMedia) {
+                return originalGetUserMedia(constraints);
+              } else {
+                throw new Error("Original getUserMedia not available.");
+              }
+            } else {
+              throw new DOMException('Permission denied', 'NotAllowedError');
+            }
+          });
+        },
+        writable: false,
+        configurable: false
+      });
+    }
+  }
+
+  interceptGetUserMedia();
+
+  const observer = new MutationObserver(function(mutationsList, observer) {
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'reconfigured' && mutation.name === 'getUserMedia' && mutation.object === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'attributes' && mutation.attributeName === 'getUserMedia' && mutation.target === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'childList' && mutation.addedNodes) {
+        mutation.addedNodes.forEach(node => {
+          if (node === navigator.mediaDevices) {
+            interceptGetUserMedia();
+          }
+        });
+      }
+    }
+  });
+
+  function interceptSpeechRecognition() {
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+      return;
+    }
+
+    const OriginalSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const SpeechRecognitionWrapper = function(...args) {
+      const recognizer = new OriginalSpeechRecognition(...args);
+      const originalStart = recognizer.start.bind(recognizer);
+
+      recognizer.start = function() {
+        requestMediaPermissions({ audio: true }).then(granted => {
+          if (granted) {
+            originalStart();
+          } else {
+            const errorEvent = new SpeechRecognitionErrorEvent('error');
+            errorEvent.error = 'not-allowed'; // This is the standard error for permission denial.
+            recognizer.dispatchEvent(errorEvent);
+          }
+        });
+      };
+
+      return recognizer;
+    };
+
+    SpeechRecognitionWrapper.prototype = OriginalSpeechRecognition.prototype;
+    SpeechRecognitionWrapper.prototype.constructor = SpeechRecognitionWrapper;
+
+    if (window.SpeechRecognition) {
+      window.SpeechRecognition = SpeechRecognitionWrapper;
+    }
+    if (window.webkitSpeechRecognition) {
+      window.webkitSpeechRecognition = SpeechRecognitionWrapper;
+    }
+  }
+
+  interceptSpeechRecognition();
+
+  window.addEventListener('message', function(event) {
+    if (event.data) {
+      if (event.data.type === 'resolveMediaPermission') {
+        const { promiseId, granted } = event.data;
+        if (pendingMediaResolvers[promiseId]) {
+          pendingMediaResolvers[promiseId](granted);
+        }
+      }
+    }
+  });
+
+})();</script><script>((function(modelInformation) {
+  const originalFetch = window.fetch;
+  // TODO: b/421908508 - Move these out of the script and match all generative AI model calls.
+  let googleLlmBaseApiUrls = [
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':streamGenerateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageEditModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.ttsModelName + ':generateContent',
+  ];
+  modelInformation.deprecatedTextModelNames.forEach((modelName) => {
+    googleLlmBaseApiUrls.push(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
+    );
+  });
+
+  const pendingFetchResolvers = {};
+  let nextPromiseId = 0;
+
+  function handleStringInput(input, optionsArgument) {
+    const actualUrl = input;
+    const fetchCallArgs = [actualUrl, optionsArgument];
+    const effectiveOptions = optionsArgument || {};
+    const bodyForApiKeyCheck = effectiveOptions.body;
+    const bodyForPostMessage = effectiveOptions.body;
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  function handleRequestInput(input, optionsArgument) {
+    const actualUrl = input.url;
+    const fetchCallArgs = [input, optionsArgument];
+    const effectiveOptions = { method: input.method, headers: new Headers(input.headers) };
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (optionsArgument) {
+      if (optionsArgument.method) effectiveOptions.method = optionsArgument.method;
+      if (optionsArgument.headers) effectiveOptions.headers = new Headers(optionsArgument.headers);
+      if ('body' in optionsArgument) {
+        bodyForApiKeyCheck = optionsArgument.body;
+        bodyForPostMessage = optionsArgument.body;
+      } else {
+        bodyForApiKeyCheck = undefined;
+        bodyForPostMessage = input.body;
+      }
+    } else {
+      bodyForApiKeyCheck = undefined;
+      bodyForPostMessage = input.body;
+    }
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  window.fetch = function(input, optionsArgument) {
+    let actualUrl;
+    let fetchCallArgs;
+    let effectiveOptions = {};
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (typeof input === 'string') {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleStringInput(input, optionsArgument));
+    } else if (input instanceof Request) {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleRequestInput(input, optionsArgument));
+    } else {
+      return originalFetch.apply(window, [input, optionsArgument]);
+    }
+
+    effectiveOptions.method = effectiveOptions.method || 'GET';
+    if (!effectiveOptions.headers) {
+      effectiveOptions.headers = new Headers();
+    }
+
+
+    if (typeof actualUrl === 'string' && googleLlmBaseApiUrls.some((url) => actualUrl.startsWith(url))) {
+      let apiKeyIsNull = true;
+
+      const regex = new RegExp("models/([^:]+)");
+      const modelNameMatch = actualUrl.match(regex);
+      const modelName = modelNameMatch ? modelNameMatch[1] : 'unspecified';
+
+
+      try {
+        const urlObject = new URL(actualUrl);  // Use URL object for robust parsing
+        const apiKeyParam = urlObject.searchParams.get('key');
+        if (apiKeyParam) {
+          apiKeyIsNull = false;
+        }
+      } catch (e) {
+        // Continue checks even if URL parsing fails
+      }
+
+      if (apiKeyIsNull && effectiveOptions.headers) {
+        const h = new Headers(effectiveOptions.headers);
+        const apiKeyHeaderValue = h.get('X-API-Key') || h.get('x-api-key');
+        if (apiKeyHeaderValue) {
+          apiKeyIsNull = false;
+          return originalFetch.apply(window, fetchCallArgs);
+        }
+      }
+
+      if (apiKeyIsNull && effectiveOptions.method && ['POST', 'PUT', 'PATCH'].includes(effectiveOptions.method.toUpperCase()) && typeof bodyForApiKeyCheck === 'string') {
+        try {
+          const bodyData = JSON.parse(bodyForApiKeyCheck);
+          if (bodyData && bodyData.apiKey) {
+            apiKeyIsNull = false;
+            return originalFetch.apply(window, fetchCallArgs);
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      if(apiKeyIsNull) {
+        const promiseId = nextPromiseId++;
+        const promise = new Promise((resolve) => {
+          pendingFetchResolvers[promiseId] = (resolvedResponse) => {
+            delete pendingFetchResolvers[promiseId];
+            resolve(resolvedResponse);
+          };
+        });
+
+        let serializedBodyForPostMessage;
+        if (typeof bodyForPostMessage === 'string' || bodyForPostMessage == null) {
+            serializedBodyForPostMessage = bodyForPostMessage;
+        } else if (bodyForPostMessage instanceof ReadableStream) {
+            serializedBodyForPostMessage = null;
+        } else {
+            try {
+                serializedBodyForPostMessage = JSON.stringify(bodyForPostMessage);
+            } catch (e) {
+                serializedBodyForPostMessage = null;
+            }
+        }
+
+        const messageOptions = {
+            method: effectiveOptions.method,
+            headers: Object.fromEntries(new Headers(effectiveOptions.headers).entries()),
+            body: serializedBodyForPostMessage
+        };
+
+        window.parent.postMessage({
+          type: 'requestFetch',
+          url: actualUrl,
+          modelName: modelName,
+          options: messageOptions,
+          promiseId: promiseId,
+        }, '*');
+
+        return promise;
+      }
+      return originalFetch.apply(window, fetchCallArgs);
+    }
+    return originalFetch.apply(window, fetchCallArgs);
+  };
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'resolveFetch') {
+      const { promiseId, response } = event.data;
+      if (pendingFetchResolvers[promiseId]) {
+        try {
+          const reconstructedResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: new Headers(response.headers),
+          });
+          pendingFetchResolvers[promiseId](reconstructedResponse);
+        } catch (error) {
+          pendingFetchResolvers[promiseId](new Response(null, { status: 500, statusText: "Interceptor Response Reconstruction Error" }));
+        }
+      }
+    }
+  });
+
+}))({"textModelName":"gemini-2.5-flash-preview-05-20","imageModelName":"imagen-3.0-generate-002","imageEditModelName":"gemini-2.0-flash-preview-image-generation","videoModelName":"veo-2.0-generate-001","ttsModelName":"gemini-2.5-flash-preview-tts","deprecatedTextModelNames":["gemini-2.0-flash","gemini-2.5-flash-preview-04-17"]})</script><script>(function() {
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+    /**
+   * Normalizes an error event or a promise rejection reason into a structured error object.
+   * @param {*} errorEventOrReason The error object or reason.
+   * @return {object} Structured error data { message, name, stack }.
+   */
+  function getErrorObject(errorEventOrReason) {
+    if (errorEventOrReason instanceof Error) {
+      return {
+        message: errorEventOrReason.message,
+        name: errorEventOrReason.name,
+        stack: errorEventOrReason.stack,
+      };
+    }
+    // Fallback for non-Error objects.
+    try {
+      return {
+        message: JSON.stringify(errorEventOrReason),
+        name: 'UnknownErrorType',
+        stack: null,
+      };
+    } catch (e) {
+      return {
+        message: String(errorEventOrReason),
+        name: 'UnknownErrorTypeNonStringifiable',
+        stack: null,
+      };
+    }
+  }
+
+  /**
+   * Converts an array of arguments (from log/error) into a single string.
+   * Handles Error objects specially to include their message and stack.
+   * @param {Array<*>} args - Arguments passed to console methods.
+   * @return {string} A string representation of the arguments.
+   */
+  function stringifyArgs(args) {
+    return args
+      .map((arg) => {
+        if (arg instanceof Error) {
+          const {message, stack} = arg;
+          return `Error: ${message}${stack ? ('\nStack: ' + stack) : ''}`;
+        }
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch (error) {
+            return '[Circular Object]';
+          }
+        } else {
+          return String(arg);
+        }
+      })
+      .join(' ');
+  }
+
+  console.log = function(...args) {
+    const logString = stringifyArgs(args);
+    window.parent.postMessage({ type: 'log', message: logString }, '*');
+    originalConsoleLog.apply(console, args);
+  };
+
+  console.error = function(...args) {
+    let errorData;
+    if (args.length > 0 && args[0] instanceof Error) {
+      const err = args[0];
+      // If the first arg is an Error, capture its details.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        ...getErrorObject(err),
+        rawArgsString: stringifyArgs(args.slice(1)),
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      // If not an Error object, treat all args as a general error message.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        message: stringifyArgs(args),
+        name: 'ConsoleLoggedError',
+        stack: null,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    window.parent.postMessage(errorData, '*');
+    originalConsoleError.apply(console, args);
+  };
+
+  // Listen for global unhandled synchronous errors.
+  window.addEventListener('error', function(event) {
+    const errorDetails = event.error ? getErrorObject(event.error) : {
+      message: event.message,
+      name: 'GlobalError',
+      stack: null,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    };
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'global',
+      ...errorDetails,
+      message: errorDetails.message || event.message,
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+  // Listen for unhandled promise rejections (asynchronous errors).
+  window.addEventListener('unhandledrejection', function(event) {
+    const errorDetails = getErrorObject(event.reason);
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'unhandledrejection',
+      ...errorDetails,
+      message: errorDetails.message || 'Unhandled Promise Rejection',
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kindle - A 2D Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .game-container {
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, border-radius 0.3s ease;
+        }
+        
+        .device-graphic {
+            display: none;
+            margin: 10px auto 0;
+            padding: 10px;
+            box-sizing: border-box;
+            color: #333;
+            font-size: 10px;
+            text-align: center;
+            user-select: none;
+        }
+
+        #kindleKeyboard {
+            background-color: #d1d1d1;
+            border: 2px solid #333;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.15);
+        }
+
+        #ipodWheel {
+            height: 120px;
+            width: 200px;
+            margin: 20px auto;
+            background-color: #e0e0e0;
+            border: 2px solid #a0a0a0;
+            border-radius: 50%;
+            position: relative;
+        }
+        #ipodWheel::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: #d0d0d0;
+            border-radius: 50%;
+            border: 2px solid #b0b0b0;
+        }
+         #ipodWheel::after {
+            content: 'MENU';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #555;
+        }
+
+        #ipaqBar {
+            background-color: #b8c4d8;
+            border-top: 2px solid #e0e8f0;
+            height: 30px;
+            line-height: 28px;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            color: #000;
+        }
+         #ipaqBar span {
+             background-color: #3d89eb;
+             color: white;
+             padding: 2px 8px;
+             border-radius: 3px;
+             font-weight: bold;
+         }
+
+        #oasisBezel {
+             position: absolute;
+             top: 0;
+             right: -100px;
+             width: 80px;
+             height: 100%;
+             background-color: #333;
+             border-radius: 0 5px 5px 0;
+             box-shadow: inset -2px 0 4px rgba(0,0,0,0.4);
+        }
+         #oasisBezel > div {
+             width: 50px;
+             height: 100px;
+             background-color: #444;
+             margin: 40px auto;
+             border-radius: 3px;
+         }
+        
+        #palmGraffiti {
+            background-color: #3a4a3a;
+            border: 2px solid #2a3a2a;
+            color: #ccc;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        #nokiaKeypad {
+            background-color: #003366;
+            color: white;
+            padding: 15px;
+            border-radius: 0 0 20px 20px;
+            border: 2px solid #002244;
+        }
+
+        #imacShell {
+            background: linear-gradient(135deg, #00d4ff, #006aff);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        #deviceInfo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        p {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            max-width: 800px;
+            line-height: 1.5;
+            transition: color 0.3s ease;
+        }
+
+        #controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            color: #fff;
+            background-color: #4a5568;
+            border: 2px solid #a0aec0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .control-btn:hover { background-color: #718096; }
+
+    </style>
+</head>
+<body style="background-color: rgb(209, 209, 209);">
+
+    <div id="imacShell" style="background: none; border-radius: 0px; padding: 0px; box-shadow: none;">
+        <h1 style="color: rgb(0, 0, 0); text-shadow: none;">Kindle</h1>
+        <div class="game-container">
+            <canvas id="gameCanvas" width="800" height="491" style="background-color: rgb(253, 253, 253); border-color: rgb(51, 51, 51); border-radius: 0px; box-shadow: rgba(0, 0, 0, 0.15) 2px 2px 5px inset;"></canvas>
+            <div id="deviceInfo" style="background-color: rgba(0, 0, 0, 0.1); color: rgb(0, 0, 0);">Kindle Scribe</div>
+            <div id="oasisBezel" class="device-graphic" style="display: none; height: 491px;"><div></div></div>
+        </div>
+        <div id="kindleKeyboard" class="device-graphic" style="display: none; width: 800px;">QWERTYUIOP | SYM | Back<br>ASDFGHJKL | Del | Enter<br>ZXCVBNM | Aa | Space</div>
+        <div id="ipodWheel" class="device-graphic" style="display: none;"></div>
+        <div id="ipaqBar" class="device-graphic" style="display: none; width: 800px;"><span>Start</span></div>
+        <div id="palmGraffiti" class="device-graphic" style="display: none; width: 800px;">[ Graffiti Area ]</div>
+        <div id="nokiaKeypad" class="device-graphic" style="display: none; width: 800px;">1 2 3<br>4 5 6<br>7 8 9<br>* 0 #</div>
+    </div>
+    <p style="color: rgb(68, 68, 68);">Use A/D to move and Space to jump. Find keys, use switches, and reach the door.</p>
+    <div id="controls">
+        <button id="skipLevelBtn" class="control-btn">Skip Level</button>
+        <button id="downloadBtn" class="control-btn">Download Game</button>
+    </div>
+
+    <script>
+        // --- Game Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const deviceInfo = document.getElementById('deviceInfo');
+        const keyboardEl = document.getElementById('kindleKeyboard');
+        const ipodWheelEl = document.getElementById('ipodWheel');
+        const ipaqBarEl = document.getElementById('ipaqBar');
+        const oasisBezelEl = document.getElementById('oasisBezel');
+        const palmEl = document.getElementById('palmGraffiti');
+        const nokiaEl = document.getElementById('nokiaKeypad');
+        const imacShell = document.getElementById('imacShell');
+        const skipLevelBtn = document.getElementById('skipLevelBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth, canvasHeight;
+
+        // --- Game World ---
+        const GRAVITY = 0.7;
+        const JUMP_STRENGTH = -15;
+        const CRUMBLE_TIME = 500;
+        const REGEN_TIME = 3000;
+
+        let currentLevelIndex = 0;
+        let levelData;
+
+        function getInitialLevelData() {
+            return [
+                // --- TUTORIAL ---
+                { style: 'scribe', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [{x:0, y:canvasHeight-40, width: canvasWidth, height: 40, texture: 'solid'}], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 1}], tutorialText: "Use A and D to Move" },
+                { style: 'scribe', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [{x:0, y:canvasHeight-40, width: 200, height: 40, texture: 'solid'}, {x:300, y:canvasHeight-40, width: canvasWidth - 300, height: 40, texture: 'solid'}], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 2}], tutorialText: "Press Space to Jump" },
+                { style: 'paperwhite', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [{x:0, y:canvasHeight-40, width: canvasWidth, height: 40, texture: 'solid'}], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 3, isLocked: true}], keys: [{x: 400, y: canvasHeight - 70, width: 20, height: 10}], tutorialText: "Grab the Key to Unlock the Door"},
+                { style: 'paperwhite', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }, { x: 300, y: canvasHeight - 150, width: 200, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [0], initialState: 'off' } ], doors: [{ x: 400, y: canvasHeight - 210, width: 20, height: 60, targetLevel: 4}], switches: [{ x: 100, y: canvasHeight - 56, width: 16, height: 16 }], tutorialText: "Touch Switches to Activate Platforms" },
+
+                // --- MAIN GAME ---
+                { style: 'fire', playerStart: { x: 100, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }, { x: 150, y: canvasHeight - 120, width: 100, height: 20, texture: 'solid' }, { x: 300, y: canvasHeight - 200, width: 20, height: 120, texture: 'solid' }, { x: 400, y: canvasHeight - 250, width: 150, height: 20, texture: 'solid' } ], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 5, isLocked: true }], keys: [{ x: 450, y: canvasHeight - 280, width: 20, height: 10 }] },
+                { style: 'classic', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: 100, height: 40, texture: 'solid' }, { x: 180, y: canvasHeight - 90, width: 80, height: 20, texture: 'crumble', isCrumbling: true }, { x: 340, y: canvasHeight - 140, width: 80, height: 20, texture: 'crumble', isCrumbling: true }, { x: canvasWidth - 100, y: canvasHeight - 40, width: 100, height: 40, texture: 'solid' } ], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 6, isLocked: false }] },
+                { style: 'ipaq', playerStart: {x: 50, y: canvasHeight-90}, platforms: [ {x:0, y:canvasHeight-40, width: canvasWidth, height: 40, texture: 'solid'}, {x: 200, y: canvasHeight-150, width: 100, height: 20, texture: 'solid'}, {x: 450, y: canvasHeight-150, width: 100, height: 20, texture: 'solid'}], doors: [{x: canvasWidth-70, y: canvasHeight-100, width: 20, height: 60, targetLevel: 7, isLocked:true}], keys:[{x:325, y:canvasHeight-70, width: 20, height: 10}]},
+                { style: 'ipod', playerStart: {x:50, y:canvasHeight-90}, platforms: [{x:0, y:canvasHeight-40, width:canvasWidth, height:40, texture:'solid'}], doors:[{x:canvasWidth-70, y:canvasHeight-100, width:20, height:60, targetLevel:8, isLocked:true}], switches:[{x:100, y:canvasHeight-56, width:16, height:16, isTimed:true, duration:2000, affects:'door'}]},
+                { style: 'oasis', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: 150, height: 40, texture: 'solid' }, { x: 250, y: canvasHeight - 100, width: 100, height: 20, texture: 'crumble', isCrumbling: true }, { x: 450, y: canvasHeight - 160, width: 100, height: 20, texture: 'crumble', isCrumbling: true }, { x: 650, y: canvasHeight - 220, width: 150, height: 40, texture: 'solid' } ], doors: [{ x: canvasWidth - 70, y: canvasHeight - 220 - 60, width: 20, height: 60, targetLevel: 9, isLocked: false }]},
+                { style: 'nokia', playerStart: {x:50, y:canvasHeight - 90}, platforms: [{x:0, y:canvasHeight-40, width:canvasWidth, height:40, texture:'solid'}, {x:100, y: canvasHeight-90, width:10, height:50, texture:'solid'}, {x:200, y: canvasHeight-90, width:10, height:50, texture:'solid'}, {x:300, y: canvasHeight-90, width:10, height:50, texture:'solid'}, {x:400, y: canvasHeight-90, width:10, height:50, texture:'solid'}, {x:500, y: canvasHeight-90, width:10, height:50, texture:'solid'}, {x:600, y: canvasHeight-90, width:10, height:50, texture:'solid'}], doors: [{x:canvasWidth-70, y:canvasHeight-100, width:20, height:60, targetLevel:10}]},
+                { style: 'fire', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }, { x: 150, y: canvasHeight - 140, width: 100, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [0], initialState: 'off' }, { x: 400, y: canvasHeight - 240, width: 100, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [1], initialState: 'off' } ], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 11, isLocked: true }], keys: [{ x: 440, y: canvasHeight - 270, width: 20, height: 10 }], switches: [ { x: 80, y: canvasHeight - 56, width: 16, height: 16 }, { x: 200, y: canvasHeight - 156, width: 16, height: 16 } ] },
+                { style: 'palm', playerStart: {x:20, y:canvasHeight-90}, platforms: [{x:0, y:canvasHeight-40, width:100, height:40, texture:'solid'}, {x:canvasWidth-100, y:canvasHeight-40, width:100, height:40, texture:'solid'}], doors: [{x:canvasWidth-70, y:canvasHeight-100, width:20, height:60, targetLevel:12, isLocked:true}], keys:[{x:canvasWidth/2-10, y:50, width:20, height:10}]},
+                { style: 'scribe', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }, { x: 200, y: canvasHeight - 120, width: 100, height: 20, texture: 'crumble', isCrumbling: true }, { x: 350, y: canvasHeight - 200, width: 100, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [0], initialState: 'off'}, { x: 550, y: canvasHeight - 280, width: 100, height: 20, texture: 'solid' } ], doors: [{ x: 600, y: canvasHeight - 340, width: 20, height: 60, targetLevel: 13, isLocked: true }], keys: [{ x: 400, y: canvasHeight - 70, width: 20, height: 10 }], switches: [{ x: 100, y: canvasHeight - 56, width: 16, height: 16 }] },
+                { style: 'imac', playerStart: {x: 50, y: canvasHeight-90}, platforms: [{x:0, y:canvasHeight-40, width:100, height:40, texture:'solid'}, {x:120, y:canvasHeight-100, width:100, height:20, texture:'solid'}, {x:240, y:canvasHeight-160, width:100, height:20, texture:'solid'}, {x:360, y:canvasHeight-220, width:100, height:20, texture:'solid'}, {x:480, y:canvasHeight-280, width:100, height:20, texture:'solid'}, {x:600, y:canvasHeight-340, width:100, height:20, texture:'solid'}], doors:[{x:canvasWidth-70, y:canvasHeight-100, width:20, height:60, targetLevel:14}]},
+                { style: 'classic', playerStart: { x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: 100, height: 40, texture: 'solid' }, { x: canvasWidth - 100, y: canvasHeight - 40, width: 100, height: 40, texture: 'solid' } ], doors: [{ x: canvasWidth - 70, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 15, isLocked: true }], keys: [{x: canvasWidth / 2 - 10, y: canvasHeight - 70, width: 20, height: 10}]},
+                { style: 'paperwhite', playerStart: {x: 50, y: canvasHeight - 90 }, platforms: [ { x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }, { x: 200, y: canvasHeight - 150, width: 100, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [0], initialState: 'on' }, { x: 400, y: canvasHeight - 250, width: 100, height: 20, texture: 'toggle', isToggleable: true, toggledBy: [1], initialState: 'off' }, ], doors: [{x: 450, y: canvasHeight - 310, width: 20, height: 60, targetLevel: 16, isLocked: false}], switches: [{x: 50, y: canvasHeight-56, width: 16, height: 16}, {x: 250, y: canvasHeight - 166, width: 16, height: 16}]},
+                { style: 'ipod', playerStart: {x:50, y:canvasHeight-90}, platforms:[{x:0, y:canvasHeight-40, width:100, height:40, texture:'solid'}, {x:150, y:canvasHeight-90, width:50, height:20, texture:'crumble', isCrumbling:true}, {x:250, y:canvasHeight-140, width:50, height:20, texture:'crumble', isCrumbling:true}, {x:350, y:canvasHeight-190, width:50, height:20, texture:'crumble', isCrumbling:true}, {x:450, y:canvasHeight-240, width:50, height:20, texture:'crumble', isCrumbling:true}, {x:canvasWidth-100, y:canvasHeight-40, width:100, height:40, texture:'solid'}], doors:[{x:canvasWidth-70, y:canvasHeight-100, width:20, height:60, targetLevel:17}]},
+                { style: 'scribe', playerStart: {x: 50, y: canvasHeight - 90}, platforms: [{x: 0, y: canvasHeight - 40, width: 150, height: 40, texture: 'solid'}, {x: canvasWidth/2 - 10, y: canvasHeight - 200, width: 20, height: 200, texture: 'solid'}, {x: canvasWidth - 150, y: canvasHeight - 40, width: 150, height: 40, texture: 'solid'}], doors: [{x: canvasWidth - 100, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 18}]},
+                { style: 'fire', playerStart: {x: 50, y: canvasHeight - 90}, platforms: [{x: 0, y: canvasHeight-40, width: 100, height: 40, texture: 'solid'}, {x: 150, y: canvasHeight-120, width:100, height:20, texture:'crumble', isCrumbling:true}, {x:300, y:canvasHeight-120, width:100, height:20, texture:'toggle', toggledBy:[0], initialState:'off'}, {x:550, y:canvasHeight-120, width:100, height:20, texture:'crumble', isCrumbling:true}, {x:canvasWidth-100, y:canvasHeight-40, width:100, height:40, texture:'solid'}], doors:[{x:canvasWidth-80, y:canvasHeight-100, width:20, height:60, targetLevel: 19, isLocked:true}], keys:[{x:350, y:canvasHeight-150, width:20, height:10}], switches:[{x:80, y:canvasHeight-56, width:16, height:16}]},
+                { style: 'win', playerStart: { x: canvasWidth / 2, y: canvasHeight - 90 }, winText: "kindle 2?", platforms: [{ x: 0, y: canvasHeight - 40, width: canvasWidth, height: 40, texture: 'solid' }], doors: [{ x: 50, y: canvasHeight - 100, width: 20, height: 60, targetLevel: 0}] }
+            ];
+        }
+        
+        const player = { x: 0, y: 0, width: 24, height: 48, speed: 4, velocityX: 0, velocityY: 0, isGrounded: false, hasKey: false };
+        const keys = { ' ': false, a: false, d: false };
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key in keys) {
+                keys[key] = true;
+                if (key === ' ') e.preventDefault();
+            }
+        });
+        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
+        
+        function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+        function resetCurrentLevel() {
+            const level = levelData[currentLevelIndex];
+            if (level && level.switches) {
+                level.switches.forEach(s => { if (s.timerId) clearTimeout(s.timerId); });
+            }
+            const freshLevels = getInitialLevelData();
+            levelData[currentLevelIndex] = deepCopy(freshLevels[currentLevelIndex]);
+            const current = levelData[currentLevelIndex];
+            const startPos = current.playerStart;
+            player.x = startPos.x; player.y = startPos.y;
+            player.velocityY = 0; player.velocityX = 0; player.hasKey = false;
+        }
+
+        function changeLevel(door) {
+            currentLevelIndex = door.targetLevel;
+            resetCurrentLevel();
+            applyTheme();
+        }
+        
+        const themes = {
+            fire: { name: "Kindle Fire HD", pageBg: '#1a202c', titleColor: '#fff', titleShadow: '2px 2px 4px rgba(0,0,0,0.5)', pColor: '#a0aec0', canvasBg: '#2d3748', canvasBorder: '#4a5568', radius: '8px', shadow: '0 4px 15px rgba(0,0,0,0.4)' },
+            scribe: { name: "Kindle Scribe", pageBg: '#d1d1d1', titleColor: '#000', titleShadow: 'none', pColor: '#444', canvasBg: '#fdfdfd', canvasBorder: '#333', radius: '0px', shadow: 'inset 2px 2px 5px rgba(0,0,0,0.15)' },
+            paperwhite: { name: "Kindle Paperwhite", pageBg: '#e0e0e0', titleColor: '#000', titleShadow: 'none', pColor: '#333', canvasBg: '#f7f7f7', canvasBorder: '#444', radius: '4px', shadow: '0 2px 8px rgba(0,0,0,0.2)' },
+            classic: { name: "Kindle (2007)", pageBg: '#c0c0c0', titleColor: '#111', titleShadow: 'none', pColor: '#222', canvasBg: '#e8e4d9', canvasBorder: '#555', radius: '2px', shadow: 'inset 1px 1px 4px rgba(0,0,0,0.2)', showKeyboard: true },
+            oasis: { name: "Kindle Oasis", pageBg: '#f0f0f0', titleColor: '#000', titleShadow: 'none', pColor: '#333', canvasBg: '#fafafa', canvasBorder: '#555', radius: '5px', shadow: '0 2px 8px rgba(0,0,0,0.2)', showOasisBezel: true },
+            ipod: { name: "iPod nano (3rd gen)", pageBg: '#dcdcdc', titleColor: '#333', titleShadow: 'none', pColor: '#444', canvasBg: '#000', canvasBorder: '#888', radius: '8px', shadow: '0 4px 10px rgba(0,0,0,0.3)', showIpodWheel: true },
+            ipaq: { name: "HP iPAQ 2003", pageBg: '#e0e8f0', titleColor: '#002050', titleShadow: 'none', pColor: '#103060', canvasBg: '#c8d4e5', canvasBorder: '#5b79a2', radius: '0px', shadow: 'inset 1px 1px 4px rgba(0,0,0,0.2)', showIpaqBar: true },
+            palm: { name: "Palm Pilot", pageBg: '#666', titleColor: '#fff', titleShadow: 'none', pColor: '#ccc', canvasBg: '#c1cca1', canvasBorder: '#2a3a2a', radius: '0', shadow: 'inset 2px 2px 5px rgba(0,0,0,0.3)', showPalm: true},
+            nokia: { name: "Nokia 3310", pageBg: '#003366', titleColor: '#fff', titleShadow: 'none', pColor: '#eee', canvasBg: '#95b8d3', canvasBorder: '#001f3f', radius: '5px', shadow: '0 4px 10px rgba(0,0,0,0.4)', showNokia: true},
+            imac: { name: "iMac G3", pageBg: '#f0f0f0', titleColor: '#333', titleShadow: 'none', pColor: '#444', canvasBg: '#fff', canvasBorder: '#fff', radius: '15px', shadow: 'inset 0 0 10px rgba(0,0,0,0.2)', showImac: true},
+            win: { name: "Game Over", pageBg: '#000', titleColor: '#0f0', titleShadow: '0 0 10px #0f0', pColor: '#0c0', canvasBg: '#000', canvasBorder: '#0f0', radius: '0px', shadow: '0 0 20px #0f0' },
+        }
+
+        function applyTheme() {
+            const themeName = levelData[currentLevelIndex].style || 'fire';
+            const theme = themes[themeName];
+            
+            // Hide all wrappers first
+            imacShell.style.background = 'none';
+            imacShell.style.borderRadius = '0';
+            imacShell.style.padding = '0';
+            imacShell.style.boxShadow = 'none';
+            document.body.style.backgroundColor = theme.pageBg;
+
+            document.querySelector('h1').style.color = theme.titleColor;
+            document.querySelector('h1').style.textShadow = theme.titleShadow;
+            document.querySelector('p').style.color = theme.pColor;
+            
+            canvas.style.backgroundColor = theme.canvasBg;
+            canvas.style.borderColor = theme.canvasBorder;
+            canvas.style.borderRadius = theme.radius;
+            canvas.style.boxShadow = theme.shadow;
+
+            // Hide all graphics
+            [keyboardEl, ipodWheelEl, ipaqBarEl, oasisBezelEl, palmEl, nokiaEl].forEach(el => el.style.display = 'none');
+            
+            // Show specific graphics
+            if (theme.showKeyboard) keyboardEl.style.display = 'block';
+            if (theme.showIpodWheel) ipodWheelEl.style.display = 'block';
+            if (theme.showIpaqBar) ipaqBarEl.style.display = 'block';
+            if (theme.showOasisBezel) oasisBezelEl.style.display = 'block';
+            if (theme.showPalm) palmEl.style.display = 'block';
+            if (theme.showNokia) nokiaEl.style.display = 'block';
+            if (theme.showImac) {
+                imacShell.style.background = 'linear-gradient(135deg, #00d4ff, #006aff)';
+                imacShell.style.borderRadius = '20px';
+                imacShell.style.padding = '20px';
+                imacShell.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
+            }
+
+            [keyboardEl, ipaqBarEl, palmEl, nokiaEl].forEach(el => { if (el.style.display === 'block') el.style.width = canvas.width + 'px'; });
+            if (oasisBezelEl.style.display === 'block') oasisBezelEl.style.height = canvas.height + 'px';
+            
+            deviceInfo.textContent = theme.name;
+            deviceInfo.style.backgroundColor = (themeName === 'fire' || themeName === 'ipod' || themeName === 'imac') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            deviceInfo.style.color = (themeName === 'fire' || themeName === 'ipod' || themeName === 'win' || themeName === 'imac') ? '#fff' : '#000';
+             if (themeName === 'palm' || themeName === 'nokia') deviceInfo.style.color = '#000';
+
+        }
+        
+        let lastSwitchToggleTime = 0;
+
+        function update() {
+            if (keys.a) player.x -= player.speed;
+            if (keys.d) player.x += player.speed;
+            if (keys[' '] && player.isGrounded) {
+                player.velocityY = JUMP_STRENGTH; player.isGrounded = false;
+            }
+
+            player.velocityY += GRAVITY;
+            player.y += player.velocityY;
+            player.isGrounded = false;
+
+            const level = levelData[currentLevelIndex];
+            const allPlatforms = (level.platforms || []).concat(level.extraPlatforms || []);
+
+            for (const platform of allPlatforms) {
+                if (platform.isGone) continue;
+                let platformIsActive = true;
+                if (platform.isToggleable) {
+                    platformIsActive = platform.toggledBy.every(i => (level.switches || [])[i].isOn);
+                    if(platform.initialState === 'on') platformIsActive = !platformIsActive;
+                }
+                if (platformIsActive && player.x < platform.x + platform.width && player.x + player.width > platform.x && player.y < platform.y + platform.height && player.y + player.height > platform.y && player.velocityY >= 0 && (player.y + player.height - player.velocityY) <= platform.y) {
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.isGrounded = true;
+                    if (platform.isCrumbling && !platform.crumbleTimer) {
+                        platform.crumbleTimer = setTimeout(() => {
+                            platform.isGone = true;
+                            platform.regenTimer = setTimeout(() => {
+                                platform.isGone = false; clearTimeout(platform.crumbleTimer); clearTimeout(platform.regenTimer);
+                                platform.crumbleTimer = null; platform.regenTimer = null;
+                            }, REGEN_TIME);
+                        }, CRUMBLE_TIME);
+                    }
+                }
+            }
+            
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvasWidth) player.x = canvasWidth - player.width;
+            if (player.y > canvasHeight + 50) { resetCurrentLevel(); }
+
+            (level.keys || []).forEach((key, i) => {
+                 if (player.x < key.x + key.width && player.x + player.width > key.x && player.y < key.y + key.height && player.y + player.height > key.y) {
+                    player.hasKey = true; level.keys.splice(i, 1);
+                 }
+            });
+            const now = Date.now();
+            if (now > lastSwitchToggleTime + 200) {
+                (level.switches || []).forEach((aSwitch, index) => {
+                    if (player.x < aSwitch.x + aSwitch.width && player.x + player.width > aSwitch.x && player.y < aSwitch.y + aSwitch.height && player.y + player.height > aSwitch.y) {
+                        aSwitch.isOn = !aSwitch.isOn; lastSwitchToggleTime = now;
+                        if (aSwitch.isTimed) {
+                            if (aSwitch.timerId) clearTimeout(aSwitch.timerId);
+                            let door = (level.doors || [])[0];
+                            if(door && aSwitch.affects === 'door') door.isLocked = !aSwitch.isOn;
+                            aSwitch.timerId = setTimeout(() => {
+                                aSwitch.isOn = false;
+                                if(door && aSwitch.affects === 'door') door.isLocked = true;
+                                aSwitch.timerId = null;
+                            }, aSwitch.duration);
+                        }
+                    }
+                });
+            }
+            (level.doors || []).forEach(door => {
+                if (player.x < door.x + door.width && player.x + player.width > door.x && player.y < door.y + door.height && player.y + player.height > door.y) {
+                    if (!door.isLocked || (door.isLocked && player.hasKey)) { changeLevel(door); return; }
+                }
+            });
+        }
+        
+        function shakyLine(x1, y1, x2, y2) { const s=5,a=1.5;ctx.beginPath();ctx.moveTo(x1,y1);const dx=(x2-x1)/s,dy=(y2-y1)/s;for(let i=1;i<s;i++)ctx.lineTo(x1+i*dx+(Math.random()-0.5)*a,y1+i*dy+(Math.random()-0.5)*a);ctx.lineTo(x2,y2);ctx.stroke(); }
+
+        const textureSets = {
+            fire: { solid:(x,y,w,h)=>{ctx.fillStyle='#4a5568';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#48bb78':'#2d3748';ctx.fillRect(x,y,w,h);ctx.strokeStyle=a?'#9ae6b4':'#4a5568';ctx.lineWidth=2;ctx.setLineDash(a?[]:[5,3]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#dd6b20';ctx.fillRect(x,y,w,h);ctx.fillStyle='#fbd38d';for(let i=0;i<w;i+=8)for(let j=0;j<h;j+=8)if((i/8+j/8)%2===0)ctx.fillRect(x+i,y+j,4,4);}, key:'#f6e05e',sOn:'#63b3ed',sOff:'#4a5568',timer:'#f56565',dL:'#c53030',dU:'#805ad5',pB:'#63b3ed',pH:'#90cdf4' },
+            scribe: { solid:(x,y,w,h)=>{ctx.fillStyle='#fdfdfd';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.fillRect(x,y,w,h);shakyLine(x,y,x+w,y);shakyLine(x+w,y,x+w,y+h);shakyLine(x+w,y+h,x,y+h);shakyLine(x,y+h,x,y);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle='#fdfdfd';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.fillRect(x,y,w,h);ctx.setLineDash(a?[]:[4,4]);shakyLine(x,y,x+w,y);shakyLine(x+w,y,x+w,y+h);shakyLine(x+w,y+h,x,y+h);shakyLine(x,y+h,x,y);ctx.setLineDash([]);}, crumble:(x,y,w,h)=>{textureSets.scribe.solid(x,y,w,h);ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1;for(let i=4;i<w;i+=8)shakyLine(x+i,y,x+i,y+h);for(let j=4;j<h;j+=8)shakyLine(x,y+j,x+w,y+j);}, key:'#000',sOn:'#333',sOff:'#ccc',timer:'#000',dL:'#555',dU:'#000',pB:'#333',pH:'#555' },
+            paperwhite: { solid:(x,y,w,h)=>{ctx.fillStyle='#ddd';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#bbb':'#eee';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#999';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#aaa';ctx.fillRect(x,y,w,h);ctx.fillStyle='#ccc';for(let i=0;i<w;i+=6)for(let j=0;j<h;j+=6)if((i/6+j/6)%2===0)ctx.fillRect(x+i,y+j,3,3);}, key:'#000',sOn:'#000',sOff:'#aaa',timer:'#000',dL:'#333',dU:'#000',pB:'#000',pH:'#444' },
+            classic: { solid:(x,y,w,h)=>{ctx.fillStyle='#9d9b8e';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#7c7a6e':'#bab8ae';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#7d7b6e';ctx.fillRect(x,y,w,h);}, key:'#111',sOn:'#111',sOff:'#888',timer:'#111',dL:'#444',dU:'#111',pB:'#111',pH:'#444' },
+            oasis: { solid:(x,y,w,h)=>{ctx.fillStyle='#e0e0e0';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#c0c0c0':'#f0f0f0';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#aaa';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#b0b0b0';ctx.fillRect(x,y,w,h);}, key:'#333',sOn:'#333',sOff:'#bbb',timer:'#333',dL:'#555',dU:'#333',pB:'#333',pH:'#555' },
+            ipod: { solid:(x,y,w,h)=>{ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#87ceeb':'#d3d3d3';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#ffb6c1';ctx.fillRect(x,y,w,h);}, key:'cyan',sOn:'lime',sOff:'gray',timer:'red',dL:'red',dU:'blue',pB:'white',pH:'#eee' },
+            ipaq: { solid:(x,y,w,h)=>{ctx.fillStyle='#9ab2d0';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#e0e8f0':'#708090';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#b0c4de';ctx.fillRect(x,y,w,h);}, key:'#003366',sOn:'#003366',sOff:'#b0c4de',timer:'#ff4500',dL:'#cc0000',dU:'#003366',pB:'#003366',pH:'#005a9e' },
+            palm: { solid:(x,y,w,h)=>{ctx.fillStyle='#9ca87a';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#8b986a':'#adbca1';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#7b885a';ctx.fillRect(x,y,w,h);}, key:'#2a3a2a',sOn:'#2a3a2a',sOff:'#8b986a',timer:'#2a3a2a',dL:'#4a5a4a',dU:'#2a3a2a',pB:'#2a3a2a',pH:'#4a5a4a' },
+            nokia: { solid:(x,y,w,h)=>{ctx.fillStyle='#004080';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'#0066cc':'#002244';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='#0052a3';ctx.fillRect(x,y,w,h);}, key:'#ffff00',sOn:'#ffff00',sOff:'#0052a3',timer:'#ffff00',dL:'#002244',dU:'#ffff00',pB:'#002244',pH:'#003366' },
+            imac: { solid:(x,y,w,h)=>{ctx.fillStyle='rgba(0,0,0,0.1)';ctx.fillRect(x,y,w,h);}, toggle:(x,y,w,h,a)=>{ctx.fillStyle=a?'rgba(0,255,0,0.5)':'rgba(255,0,0,0.3)';ctx.fillRect(x,y,w,h);}, crumble:(x,y,w,h)=>{ctx.fillStyle='rgba(255,165,0,0.5)';ctx.fillRect(x,y,w,h);}, key:'#ff00ff',sOn:'#00ff00',sOff:'#ff0000',timer:'#ff00ff',dL:'#ff0000',dU:'#0000ff',pB:'#333',pH:'#666' },
+            win: { solid:(x,y,w,h)=>{ctx.fillStyle='#0a0';ctx.fillRect(x,y,w,h);}, pB:'#0f0', pH:'#afa' }
+        };
+
+        function draw() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            const level = levelData[currentLevelIndex];
+            if (!level) return;
+            const themeName = level.style || 'fire';
+            const theme = textureSets[themeName];
+            
+            // Special background effects
+            const bgGradient = (color, alpha) => {
+                const grad = ctx.createRadialGradient(canvasWidth/2, canvasHeight/2, 1, canvasWidth/2, canvasHeight/2, Math.max(canvasWidth, canvasHeight));
+                grad.addColorStop(0, `rgba(${color}, ${alpha})`); grad.addColorStop(1, `rgba(${color}, 0)`); return grad;
+            };
+            if (themeName === 'paperwhite') ctx.fillStyle = bgGradient('173, 216, 230', 0.15);
+            if (themeName === 'oasis') ctx.fillStyle = bgGradient('255, 190, 120', 0.1);
+            if (themeName === 'paperwhite' || themeName === 'oasis') ctx.fillRect(0,0,canvasWidth,canvasHeight);
+
+            if (level.winText || (!level.platforms && level.tutorialText)) {
+                ctx.fillStyle = (['fire','ipod','win','imac'].includes(themeName)) ? '#fff' : '#000';
+                 if (themeName === 'nokia' || themeName === 'palm') ctx.fillStyle = '#000';
+                ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = 'center';
+                const text = level.winText || level.tutorialText;
+                text.split('\n').forEach((line, i) => ctx.fillText(line, canvasWidth / 2, canvasHeight / 2 + i * 40));
+                 if (level.style === 'win') {
+                    ctx.fillStyle = theme.pB; ctx.fillRect(player.x, player.y + 16, player.width, 24);
+                    ctx.fillStyle = theme.pH; ctx.fillRect(player.x, player.y, player.width, 16);
+                }
+                return;
+            }
+
+            const allPlatforms = (level.platforms || []).concat(level.extraPlatforms || []);
+            allPlatforms.forEach(p => {
+                if (p.isGone) return;
+                let platformIsActive = true;
+                if (p.isToggleable) {
+                    platformIsActive = p.toggledBy.every(i => (level.switches || [])[i].isOn);
+                    if(p.initialState === 'on') platformIsActive = !platformIsActive;
+                }
+                if (p.texture === 'toggle') theme.toggle(p.x, p.y, p.width, p.height, platformIsActive);
+                else if(platformIsActive) theme[p.texture](p.x, p.y, p.width, p.height);
+            });
+
+            (level.keys || []).forEach(k => { ctx.fillStyle = theme.key; ctx.fillRect(k.x, k.y, k.width, k.height); });
+            (level.switches || []).forEach(s => {
+                 ctx.fillStyle = s.isOn ? theme.sOn : theme.sOff; ctx.fillRect(s.x, s.y, s.width, s.height);
+                 if (s.isTimed) { ctx.fillStyle = theme.timer; ctx.beginPath(); ctx.arc(s.x+s.width/2,s.y+s.height/2,4,0,Math.PI*2); ctx.fill(); }
+            });
+            (level.doors || []).forEach(d => { ctx.fillStyle = (d.isLocked && !player.hasKey) ? theme.dL : theme.dU; ctx.fillRect(d.x, d.y, d.width, d.height); });
+
+            ctx.fillStyle = theme.pB; ctx.fillRect(player.x, player.y + 16, player.width, 24);
+            ctx.fillStyle = theme.pH; ctx.fillRect(player.x, player.y, player.width, 16);
+
+            if(player.hasKey) { ctx.fillStyle = theme.key; ctx.fillRect(canvasWidth - 40, 20, 20, 10); }
+            if (level.tutorialText) {
+                ctx.fillStyle = (['fire','ipod','imac'].includes(themeName)) ? '#fff' : '#000';
+                 if (themeName === 'nokia' || themeName === 'palm') ctx.fillStyle = '#000';
+                ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = 'center';
+                ctx.fillText(level.tutorialText, canvasWidth / 2, 40);
+            }
+        }
+
+        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
+        function setupAndResize() {
+            const containerWidth = document.body.clientWidth;
+            canvasWidth = containerWidth * 0.9;
+            canvasHeight = window.innerHeight * 0.5;
+
+            if (canvasWidth > 800) canvasWidth = 800;
+            if (canvasHeight > 600) canvasHeight = 600;
+
+            canvas.width = canvasWidth; 
+            canvas.height = canvasHeight;
+
+            levelData = getInitialLevelData();
+            resetCurrentLevel();
+            applyTheme();
+        }
+
+        skipLevelBtn.addEventListener('click', () => {
+            currentLevelIndex = (currentLevelIndex + 1) % levelData.length;
+            resetCurrentLevel();
+            applyTheme();
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'kindle-game.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        window.addEventListener('resize', setupAndResize);
+        setupAndResize();
+        requestAnimationFrame(gameLoop);
+
+    </script>
+
+
+</body></html>
